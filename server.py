@@ -1,14 +1,15 @@
+import signal
 import socket
+import sys
 
 
-def convert_unix_python(command):
-    if 'ls' in command:
-        return compile("""import pathlib\ncurrentDir = pathlib.Path('.')\nfor currentFile in currentDir.iterdir():\tprint(currentFile)""", 'command', 'exec')
-    else:
-        print('asdf')
+def signal_handle(sig, frame):
+    print("CTRL+C detected, exiting...")
+    sys.exit(0)
 
 def listen():
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR,1)
     s.bind(("127.0.0.1", 8000))
     s.listen(1)
     print("[+] Listening on {}:{}".format("127.0.0.1", "8000"))
@@ -18,14 +19,14 @@ def listen():
 
     while True:
         command = input("SHELL> ")
-        if 'terminate' in command:
-            conn.send('terminate'.encode())
+        if 'exit' in command:
+            conn.send('exit\r\n'.encode())
             conn.close()
             break
         else:
-            py_cmd = convert_unix_python(command)
-            print(py_cmd)
-            conn.send(py_cmd.encode())
+            #conn.send((command + '\r\n').encode())
+            conn.send(f'{command}\r\n'.encode())
             print(conn.recv(1024))
 
+signal.signal(signal.SIGINT, signal_handle)
 listen()
